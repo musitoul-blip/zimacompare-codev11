@@ -206,7 +206,7 @@ export default function TabScanSync({ status }) {
   const [history,  setHistory]  = useState([])
   const [source,   setSource]   = useState('')
   const [target,   setTarget]   = useState('')
-  const [method,   setMethod]   = useState('fast')
+  const [method,   setMethod]   = useState('')
   const [dryRun,   setDryRun]   = useState(true)
   const [filterOn,   setFilterOn]   = useState(false)
   const [filterText, setFilterText] = useState("")
@@ -236,7 +236,7 @@ export default function TabScanSync({ status }) {
   useEffect(() => {
     if (status?.source && !source) setSource(status.source)
     if (status?.target && !target) setTarget(status.target)
-    if (status?.method) setMethod(status.method)
+    if (status?.method && METHODS.some(m => m.id === status.method)) setMethod(status.method)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status?.source, status?.target, status?.method])
 
@@ -300,7 +300,7 @@ export default function TabScanSync({ status }) {
     if (!p) return
     setSource(p.source || '')
     setTarget(p.target || '')
-    if (p.method) setMethod(p.method)
+    if (p.method && METHODS.some(m => m.id === p.method)) setMethod(p.method)
   }
   async function saveProfile() {
     const name = profileName.trim()
@@ -478,7 +478,7 @@ export default function TabScanSync({ status }) {
             </div>
           )}
           {!isActive ? (
-            <button className="btn-primary" onClick={doScan} disabled={busy || !source || !target}>
+            <button className="btn-primary" onClick={doScan} disabled={busy || !source || !target || !method}>
               🔍 Lancer le scan
             </button>
           ) : (
@@ -486,7 +486,10 @@ export default function TabScanSync({ status }) {
               ⏹ ARRÊTER ({status?.app_state})
             </button>
           )}
-          {!isActive && (!source || !target) && (
+          {!isActive && source && target && !method && (
+              <span style={{ color:"var(--danger)", fontSize:12 }}>⚠ Choisis un niveau de précision</span>
+            )}
+            {!isActive && (!source || !target) && (
             <span style={{ color:"var(--danger)", fontSize:12 }}>⚠ Choisis source et cible pour lancer</span>
           )}
           <span style={{ flex:1 }} />

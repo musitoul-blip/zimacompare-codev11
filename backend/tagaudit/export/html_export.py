@@ -205,15 +205,30 @@ def _dir_aggregate(ar, df, groups):
         alb2dir.setdefault(album, []).append(d)
 
     def resolve(data):
-        if "filepath" in data.columns:
+        cols = list(data.columns)
+        if "filepath" in cols:
             return set(os.path.dirname(str(x)) for x in data["filepath"])
         res = set()
-        if "parent_folder" in data.columns:
-            for v in data["parent_folder"].astype(str):
-                res.update(pf2dir.get(v, []))
-        elif "album" in data.columns:
-            for v in data["album"].astype(str):
-                res.update(alb2dir.get(v, []))
+        for fc in ("parent_folder", "Dossier", "Chemin", "directory", "dossier", "chemin", "Repertoire", "Répertoire"):
+            if fc in cols:
+                for v in data[fc].astype(str):
+                    v = v.strip()
+                    if not v:
+                        continue
+                    if v in dir_info:
+                        res.add(v)
+                    elif v in pf2dir:
+                        res.update(pf2dir[v])
+                    elif "/" in v:
+                        res.add(v)
+                if res:
+                    return res
+        for ac in ("album", "Album"):
+            if ac in cols:
+                for v in data[ac].astype(str):
+                    res.update(alb2dir.get(v, []))
+                if res:
+                    return res
         return res
 
     flags = {}
@@ -384,14 +399,40 @@ def export_to_html():
     p.append("<div class='zpanel' data-p='dir'>")
     p.append("<div class='zfilters'><input id='dirSearch' placeholder='filtrer un album ou un artiste...'>")
     p.append("<label class='zmut'><input type='checkbox' id='prioOnly'> priorite (&#8805;2 audits)</label></div>")
+    _catc = {}
+    for _r in dirs:
+        for _lbl, _sev in _r["labels"]:
+            _catc[_lbl] = _catc.get(_lbl, 0) + 1
+    _cats_all = []
+    _seen = set()
+    for _g, _sheets in groups.items():
+        if _g in ("cockpit", "kpi", "donnees"):
+            continue
+        for _sn, _dk in _sheets:
+            if _dk in KPI_KEYS or _dk in SKIP_KEYS or _dk in INFO_KEYS:
+                continue
+            _lab = _clean_label(_sn)
+            if _lab and _lab not in _seen:
+                _seen.add(_lab)
+                _cats_all.append(_lab)
+    if _cats_all:
+        p.append("<div class='zcats'>")
+        p.append("<span class='zmut' style='font-size:12px;margin-right:4px'>Filtrer par categorie :</span>")
+        for _lab in _cats_all:
+            _cnt = _catc.get(_lab, 0)
+            _v = _html.escape(_lab.strip().lower(), quote=True)
+            _cls = "zcat" if _cnt else "zcat zcat0"
+            p.append("<label class='%s'><input type='checkbox' class='zcatcb' value='%s'> %s <span class='zmut'>(%d)</span></label>" % (_cls, _v, _html.escape(_lab), _cnt))
+        p.append("</div>")
     p.append("<p class='zmut' style='font-size:12px'>Clique <b>copier</b> puis colle le chemin dans l'Explorateur / EZ CD. Le lien <i>ouvrir</i> ne fonctionne que si tu as <b>telecharge</b> ce rapport et l'ouvres en fichier local (mieux dans Firefox).</p>")
     p.append("<div id='dirList'>")
     for r in dirs:
         nb = len(r["labels"])
+        catstr = _html.escape("|" + "|".join(_l.strip().lower() for _l, _s in r["labels"]) + "|", quote=True)
         badges = "".join(f"<span class='zb zb-{sev}'>{_html.escape(lbl)}</span>" for lbl, sev in r["labels"])
         winj = r["win"].replace("\\", "\\\\").replace("'", "\\'")
         p.append(
-            f"<div class='zrow' data-name=\"{_html.escape(r['name'].lower())}\" data-audits='{nb}'>"
+            f"<div class='zrow' data-name=\"{_html.escape(r['name'].lower())}\" data-audits='{nb}' data-cats='{catstr}'>"
             f"<div class='zrow-m'><div class='zrow-t'>{_html.escape(r['name'])}</div>"
             f"<div class='zbadges'>{badges}</div>"
             f"<div class='zpathline'><span class='zpath'>{_html.escape(r['win'])}</span>"
@@ -470,6 +511,10 @@ color:var(--zmut);cursor:pointer}
 .zfilters input[type=text],#dirSearch,.zflt{width:100%;max-width:340px;padding:8px 10px;border:1px solid var(--zborder);
 border-radius:8px;background:var(--zsurf);color:var(--zfg);font-size:13px;outline:none}
 .zflt{max-width:none;margin-bottom:10px}
+.zcats{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;margin:0 0 12px}
+.zcat{display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--zfg);background:var(--zsurf);border:1px solid var(--zborder);border-radius:8px;padding:4px 9px;cursor:pointer}
+.zcat input{margin:0}
+.zcat0{opacity:.6}
 .zrow{display:flex;gap:12px;align-items:flex-start;padding:12px;border:1px solid var(--zborder);border-radius:12px;
 background:var(--zsurf);margin-bottom:10px}
 .zrow-m{flex:1;min-width:0}
@@ -521,12 +566,17 @@ document.querySelectorAll('.zpanel').forEach(function(x){x.classList.remove('act
 b.classList.add('active');var pn=document.querySelector(".zpanel[data-p='"+b.getAttribute('data-t')+"']");
 if(pn)pn.classList.add('active');window.scrollTo(0,0);});});
 (function(){var ds=document.getElementById('dirSearch'),po=document.getElementById('prioOnly');
+var cbs=Array.prototype.slice.call(document.querySelectorAll('.zcatcb'));
 function flt(){var q=(ds.value||'').toLowerCase(),prio=po.checked;
+var sel=cbs.filter(function(c){return c.checked;}).map(function(c){return c.value;});
 document.querySelectorAll('#dirList .zrow').forEach(function(r){
 var okq=r.getAttribute('data-name').indexOf(q)>-1;
 var okp=!prio||parseInt(r.getAttribute('data-audits'),10)>=2;
-r.style.display=(okq&&okp)?'':'none';});}
-if(ds)ds.addEventListener('input',flt);if(po)po.addEventListener('change',flt);})();
+var cats=r.getAttribute('data-cats')||'';
+var okc=sel.length===0||sel.some(function(v){return cats.indexOf('|'+v+'|')>-1;});
+r.style.display=(okq&&okp&&okc)?'':'none';});}
+if(ds)ds.addEventListener('input',flt);if(po)po.addEventListener('change',flt);
+cbs.forEach(function(c){c.addEventListener('change',flt);});})();
 document.addEventListener('click',function(e){var th=e.target.closest&&e.target.closest('table.ztbl thead th');
 if(!th)return;var tbl=th.closest('table');var idx=Array.prototype.indexOf.call(th.parentNode.children,th);
 var body=tbl.tBodies[0];if(!body)return;var rows=Array.prototype.slice.call(body.rows);

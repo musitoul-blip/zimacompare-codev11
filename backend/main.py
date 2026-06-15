@@ -48,7 +48,8 @@ from setup import (
 
 logger = setup_logging()
 
-app = FastAPI(title="ZimaCompare v3", version="3.8.0")
+from config import APP_VERSION
+app = FastAPI(title="ZimaCompare v3", version=APP_VERSION)
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 app.include_router(setup_router)
 

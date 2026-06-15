@@ -312,7 +312,7 @@ def _table_html_links(df, data_key):
             cell = "" if pd.isna(v) else str(v)
             out.append("<td>%s</td>" % _html.escape(cell))
         folder = os.path.dirname(str(row.get(folder_col, "")))
-        out.append("<td>%s</td>" % _links_cell(folder))
+        out.append("<td class='zdir'>%s</td>" % _links_cell(folder))
         out.append("</tr>")
     out.append("</tbody></table>")
     if len(df) > ROW_CAP:
@@ -535,10 +535,10 @@ background:var(--zsurf);margin-bottom:10px}
 .zt.dark .zb-danger{background:#3a1f1f;color:#f09595}
 .zt.dark .zb-warn{background:#3a2f1a;color:#EF9F27}
 .zt.dark .zb-ok{background:#16301f;color:#9fe1cb}
-.zpathline{display:flex;gap:8px;align-items:center;flex-wrap:wrap;min-width:0}
+.zpathline{display:flex;gap:8px;align-items:center;flex-wrap:nowrap;min-width:0;overflow:hidden}
 .zpath{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;color:var(--zmut);background:var(--zbg);
 padding:4px 8px;border-radius:6px;border:1px solid var(--zborder);
-white-space:normal;overflow-wrap:anywhere;max-width:100%}
+white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;flex:0 1 auto;max-width:100%}
 .zbtn{background:transparent;border:1px solid var(--zborder);color:var(--zfg);border-radius:8px;padding:5px 10px;
 font-size:12px;cursor:pointer}
 .zbtn:hover{background:var(--zbg)}
@@ -547,6 +547,8 @@ font-size:12px;cursor:pointer}
 .zlink:hover{text-decoration:underline}
 .zezcd{color:#D85A30;font-weight:600}
 .zexp{color:#2E7D32;font-weight:600}
+.zpathline>.zbtn,.zpathline>.zlink{flex:none}
+table.ztbl td.zdir{max-width:none;white-space:nowrap}
 .ztw{overflow:auto;max-height:440px;border:1px solid var(--zborder);border-radius:8px}
 table.ztbl{border-collapse:collapse;width:100%;font-size:12.5px}
 table.ztbl thead th{position:sticky;top:0;background:var(--zbg);color:var(--zfg);text-align:left;padding:7px 9px;

@@ -10,6 +10,7 @@ import TabInfo     from './components/TabInfo.jsx'
 import TabZimatag from './components/TabZimatag.jsx'
 import TabVerification from './components/TabVerification.jsx'
 
+document.title = 'ZimaCompare&Tag v' + __APP_VERSION__
 const STATE_COLOR = {
   IDLE:      '#64748b',
   SCANNING:  '#4f8ef7',
@@ -68,7 +69,7 @@ export default function App() {
       }}>
         <img src="/icon.png" alt="" style={{ height:24, width:24, borderRadius:5 }} />
         <span style={{ fontWeight:700, fontSize:16, letterSpacing:'.02em' }}>ZimaCompare&Tag</span>
-        <span style={{ color:'var(--muted)', fontSize:12 }}>v9</span>
+        <span style={{ color:'var(--muted)', fontSize:12 }}>v{__APP_VERSION__}</span>
         <div style={{ flex:1 }} />
         {error ? (
           <span className="badge badge-red">⚠ {error}</span>

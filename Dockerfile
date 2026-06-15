@@ -18,7 +18,11 @@ COPY frontend/package.json frontend/package-lock.json* ./
 # À regénérer au D-D pour un build 100% reproductible.
 RUN npm ci || npm install
 COPY frontend/ ./
-RUN npm run build          # → /app/dist
+COPY backend/config.py /tmp/config.py
+RUN APP_VERSION="$(sed -nE 's/^APP_VERSION[^"]*"([^"]+)".*/\1/p' /tmp/config.py)" \
+    && echo "BUILD APP_VERSION=$APP_VERSION" \
+    && sed -i "s/\"version\": \"[^\"]*\"/\"version\": \"$APP_VERSION\"/" package.json \
+    && VITE_APP_VERSION="$APP_VERSION" npm run build          # → /app/dist
 
 # --- Étape 2 : image finale AIO ---------------------------------------------
 FROM python:3.12-slim AS final
@@ -67,6 +71,7 @@ WORKDIR /app
 
 # 6) Frontend compilé servi par nginx
 COPY --from=frontend-build /app/dist /usr/share/nginx/html
+COPY --from=frontend-build /app/package.json /app_frontend/package.json
 
 # 7) rootfs : services S6 (rclone/uvicorn/nginx) + conf nginx + fuse.conf
 COPY rootfs/ /
